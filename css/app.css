@@ -155,7 +155,7 @@ a.btn { text-decoration: none; }
 .permission-note { background: rgba(17,24,32,.14); color: var(--cream); padding: 10px 14px; font-size: 14px; }
 .permission-note summary { cursor: pointer; font-weight: 600; }
 .permission-note p { margin: 8px 0 0; }
-.splash-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; font-size: 12.5px; color: var(--ink); opacity: .85; margin-top: auto; }
+.splash-foot { display: flex; flex-wrap: wrap; justify-content: center; text-align: center; gap: 6px 14px; font-size: 12.5px; letter-spacing: .06em; color: var(--ink); opacity: .85; margin-top: auto; }
 
 /* ---------- LOADING ---------- */
 #loading { background: var(--teal-deep); z-index: 9; }
