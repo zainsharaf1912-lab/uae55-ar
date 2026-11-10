@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>حكاية وطن.. تجمعنا أسرة</title>
+<meta name="description" content="تجربة واقع معزز لعيد الاتحاد الـ55 وعام الأسرة 2026 — Ajman University, College of Mass Communication">
+<meta name="theme-color" content="#C86757">
+<link rel="stylesheet" href="css/app.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="scene-canvas" aria-label="المشهد ثلاثي الأبعاد"></canvas>
+  <div id="grain" aria-hidden="true"></div>
+
+  <!-- ============ SPLASH ============ -->
+  <section id="splash" class="screen is-active" aria-labelledby="splash-title">
+    <div class="splash-inner">
+      <div class="splash-top">
+        <div class="logo-plate"><img src="assets/brand/logo-vertical-framed.svg" alt="شعار عيد الاتحاد — Eid Al Etihad"></div>
+        <div class="splash-tags">
+          <span class="tag">عيد الاتحاد الـ<b class="num">55</b></span>
+          <span class="tag tag-sage">عام الأسرة <b class="num">2026</b></span>
+        </div>
+      </div>
+
+      <div class="splash-title-block">
+        <h1 id="splash-title">حكاية وطن..<br>تجمعنا أسرة</h1>
+        <p class="en-title" lang="en" dir="ltr">A NATION'S STORY, A FAMILY'S LEGACY</p>
+        <p class="splash-lede">ادخل فريجاً إماراتياً قديماً على طاولتك، وافتح باب بيت العائلة، وتعرّف إلى أسرة من سبعة أفراد تحفظ ذاكرة الوطن.</p>
+      </div>
+
+      <div class="splash-illus" aria-hidden="true">
+        <img class="il il-palm" data-asset="assets/illustrations/palm.webp" alt="">
+        <img class="il il-family" data-asset="assets/illustrations/family-portrait.webp" alt="">
+        <img class="il il-weaver" data-asset="assets/illustrations/weaver.webp" alt="">
+        <img class="il il-dhow" data-asset="assets/illustrations/dhow.webp" alt="">
+        <img class="il il-cat" data-asset="assets/illustrations/cat.webp" alt="">
+      </div>
+
+      <div class="device-card" id="device-card" role="status" aria-live="polite">
+        <span class="dot" id="device-dot"></span>
+        <span id="device-status">جارٍ فحص دعم الواقع المعزز في جهازك…</span>
+      </div>
+
+      <div class="splash-actions">
+        <button id="btn-start-ar" class="btn btn-primary" hidden>
+          <span>ابدأ بالواقع المعزز</span><small>يتطلب الكاميرا وسطحاً مستوياً</small>
+        </button>
+        <a id="btn-ios-ar" class="btn btn-primary" hidden href="#">
+          <span>ابدأ بالواقع المعزز على iPhone</span><small>يفتح التجربة نفسها في Needle Go (App Clip) بتتبع ARKit</small>
+        </a>
+        <p id="ios-ar-note" class="ios-note" hidden>عند أول استخدام تظهر بطاقة «Needle Go» أسفل الشاشة: اضغط «فتح». إذا لم تظهر البطاقة اضغط الزر مرة ثانية. يعمل في Safari فقط.</p>
+        <button id="btn-start-3d" class="btn btn-secondary">
+          <span>ابدأ التجربة ثلاثية الأبعاد</span><small>تعمل على كل الأجهزة — ليست واقعاً معززاً</small>
+        </button>
+      </div>
+
+      <details class="permission-note">
+        <summary>عن إذن الكاميرا والخصوصية</summary>
+        <p>في وضع الواقع المعزز سيطلب المتصفح إذن استخدام الكاميرا لرؤية المكان من حولك ووضع الحي على سطح حقيقي. الصورة تُعرض على جهازك فقط، ولا تُسجَّل أو تُرسل إلى أي جهة. إذا رفضت الإذن يمكنك متابعة الحكاية في الوضع ثلاثي الأبعاد.</p>
+        <p>للحصول على أفضل تجربة: استخدم سماعات الأذن، ووجّه الكاميرا نحو طاولة أو أرضية جيدة الإضاءة.</p>
+      </details>
+
+      <footer class="splash-foot">
+        <span>جامعة عجمان</span>
+        <span lang="en" dir="ltr">College of Mass Communication · Ajman University</span>
+      </footer>
+    </div>
+  </section>
+
+  <!-- ============ LOADING ============ -->
+  <section id="loading" class="screen" aria-live="polite">
+    <div class="loading-inner">
+      <div class="loading-55" aria-hidden="true"><img data-asset="assets/illustrations/55-perspectives.webp" alt=""></div>
+      <p id="loading-text">نبني الفريج…</p>
+      <div class="bar"><div id="loading-bar"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ EXPERIENCE HUD (also the WebXR dom-overlay root) ============ -->
+  <section id="hud" class="screen" aria-label="واجهة التجربة">
+    <header class="hud-top">
+      <div class="hud-title">
+        <span class="mode-badge" id="mode-badge">وضع ثلاثي الأبعاد · ليس واقعاً معززاً</span>
+        <p class="chapter" id="chapter-label">المشهد 1 من 7</p>
+        <h2 id="scene-title">الفريج القديم</h2>
+        <p class="scene-en" id="scene-en" lang="en" dir="ltr">The Old Neighborhood</p>
+      </div>
+      <div class="hud-tools">
+        <button class="icon-btn" id="btn-sound" aria-pressed="true" aria-label="الأصوات المحيطة">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="on" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path class="off" d="M16 9l5 6M21 9l-5 6"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-voice" aria-pressed="true" aria-label="الراوي">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/><path class="off" d="M4 4l16 16"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-menu" aria-label="قائمة المشاهد" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-exit" aria-label="خروج">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div id="ar-guide" class="ar-guide" hidden>
+      <div class="ar-guide-card">
+        <div class="scan-anim" aria-hidden="true"><span></span></div>
+        <p id="ar-guide-text">حرّك هاتفك ببطء فوق طاولة أو أرضية لاكتشاف سطح مستوٍ</p>
+      </div>
+    </div>
+
+    <div id="ar-controls" class="ar-controls" hidden>
+      <button class="chip-btn" id="ar-rot-r" aria-label="تدوير يميناً">↻</button>
+      <button class="chip-btn" id="ar-rot-l" aria-label="تدوير يساراً">↺</button>
+      <button class="chip-btn" id="ar-bigger" aria-label="تكبير">+</button>
+      <button class="chip-btn" id="ar-smaller" aria-label="تصغير">−</button>
+      <button class="chip-btn wide" id="ar-replace">إعادة الوضع</button>
+    </div>
+
+    <nav id="scene-menu" class="scene-menu" hidden aria-label="المشاهد">
+      <ol id="scene-list"></ol>
+    </nav>
+
+    <div class="hud-bottom">
+      <div class="caption-card" id="caption-card">
+        <button class="caption-play" id="btn-replay" aria-label="أعد السرد">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <p id="caption-text" class="caption-text"></p>
+        <p id="caption-hint" class="caption-hint"></p>
+      </div>
+      <div class="nav-row">
+        <button class="nav-btn" id="btn-prev"><span aria-hidden="true">→</span> السابق</button>
+        <div class="dots" id="scene-dots" aria-hidden="true"></div>
+        <button class="nav-btn nav-next" id="btn-next">التالي <span aria-hidden="true">←</span></button>
+      </div>
+    </div>
+
+    <!-- Info sheet -->
+    <aside id="sheet" class="sheet" hidden aria-labelledby="sheet-title">
+      <button class="sheet-close" id="sheet-close" aria-label="إغلاق">×</button>
+      <div class="sheet-illus"><img id="sheet-img" alt=""></div>
+      <div class="sheet-body">
+        <p class="sheet-kicker" id="sheet-kicker"></p>
+        <h3 id="sheet-title"></h3>
+        <div id="sheet-text"></div>
+        <div id="sheet-steps" class="steps" hidden></div>
+      </div>
+    </aside>
+
+    <div id="toast" class="toast" role="alert" hidden></div>
+  </section>
+
+  <!-- ============ FINALE ============ -->
+  <section id="finale" class="screen" aria-labelledby="finale-title">
+    <div class="finale-card">
+      <div class="logo-plate logo-plate-lg"><img src="assets/brand/logo-vertical-framed.svg" alt="شعار عيد الاتحاد — Eid Al Etihad"></div>
+      <p class="finale-kicker">عام الأسرة <span class="num">2026</span></p>
+      <h2 id="finale-title">ننمو معاً</h2>
+      <p class="en-title" lang="en" dir="ltr">GROWING IN UNITY</p>
+      <p class="finale-text">سبعة أفراد في بيت واحد، كما سبع إمارات في وطن واحد. <span class="num">55</span> عاماً من الاتحاد، ومع كل جيل تكبر الحكاية.</p>
+      <div class="seven" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="finale-actions">
+        <button class="btn btn-primary" id="btn-restart"><span>شاهد الحكاية من جديد</span></button>
+        <button class="btn btn-secondary" id="btn-share"><span>شارك التجربة (رمز QR)</span></button>
+        <button class="btn btn-ghost" id="btn-finale-close"><span>العودة إلى الحي</span></button>
+      </div>
+      <div id="qr-box" class="qr-box" hidden>
+        <canvas id="qr-canvas" width="240" height="240" aria-label="رمز QR لرابط التجربة"></canvas>
+        <p id="qr-url" class="qr-url" dir="ltr"></p>
+      </div>
+      <p class="credit"><span>حكاية وطن.. تجمعنا أسرة</span> · <span lang="en" dir="ltr">College of Mass Communication · Ajman University</span></p>
+    </div>
+  </section>
+
+  <!-- ============ ERROR ============ -->
+  <section id="fatal" class="screen" role="alert">
+    <div class="fatal-card">
+      <h2>تعذّر تشغيل التجربة</h2>
+      <p id="fatal-text">متصفحك لا يدعم الرسوميات ثلاثية الأبعاد (WebGL).</p>
+      <p>جرّب أحدث إصدار من Chrome أو Safari، أو افتح الرابط على هاتف آخر.</p>
+    </div>
+  </section>
+
+  <a id="quicklook-link" rel="ar" hidden><img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="></a>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

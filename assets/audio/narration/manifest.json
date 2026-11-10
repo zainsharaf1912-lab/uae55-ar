@@ -1,0 +1,4 @@
+{
+  "comment": "List the narration ids that have a recorded MP3 in this folder (e.g. \"neighborhood\"). Ids: neighborhood, home, pearl, weaving, majlis, tv, finale, grandma-story, pearl-info. Files not listed here fall back to device Arabic text-to-speech, then captions.",
+  "files": []
+}

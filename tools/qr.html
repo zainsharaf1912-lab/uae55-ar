@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>رمز QR للتجربة</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  :root { --terracotta: #C86757; --ink: #111820; --cream: #F1ECD6; --sage: #D1E8CC; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--terracotta); color: var(--ink); font-family: "Noto Sans Arabic", Tahoma, sans-serif;
+         display: grid; place-items: center; padding: 24px max(16px, env(safe-area-inset-left)); }
+  main { background: var(--cream); padding: 24px; width: min(440px, 100%); display: flex; flex-direction: column; gap: 12px; }
+  h1 { margin: 0; font-size: 22px; }
+  label { font-weight: 600; font-size: 14px; }
+  input { width: 100%; padding: 10px 12px; font: 15px ui-monospace, monospace; direction: ltr; border: 1.5px solid var(--ink); background: #fff; }
+  .row { display: flex; gap: 8px; }
+  button { flex: 1; min-height: 46px; border: 0; background: var(--ink); color: var(--cream); font: 600 15px inherit; cursor: pointer; }
+  button.secondary { background: var(--sage); color: var(--ink); }
+  canvas { width: 100%; height: auto; background: #fff; }
+  p { margin: 0; font-size: 13px; }
+  .err { color: #AB4B23; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>رمز QR لتجربة «حكاية وطن»</h1>
+  <label for="url">رابط التجربة المنشورة (HTTPS)</label>
+  <input id="url" type="url" placeholder="https://<account>.github.io/uae55-family-story/" autocomplete="off">
+  <div class="row"><button id="go">إنشاء الرمز</button><button id="dl" class="secondary" disabled>تنزيل PNG</button></div>
+  <p id="msg"></p>
+  <canvas id="c" width="1024" height="1024" aria-label="رمز QR"></canvas>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  if (location.protocol === 'https:') $('url').value = location.href.replace(/tools\/qr\.html.*$/, '');
+  function draw() {
+    const url = $('url').value.trim(); const msg = $('msg'); msg.className = '';
+    if (!/^https:\/\//.test(url)) { msg.textContent = 'أدخل رابطاً يبدأ بـ https:// — الواقع المعزز لا يعمل دون HTTPS.'; msg.className = 'err'; return; }
+    if (typeof qrcode === 'undefined') { msg.textContent = 'تعذّر تحميل مكتبة QR (تحقق من الاتصال بالإنترنت).'; msg.className = 'err'; return; }
+    const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+    const n = qr.getModuleCount(), c = $('c'), g = c.getContext('2d');
+    const cell = Math.floor(c.width / (n + 8)), off = Math.floor((c.width - cell * n) / 2);
+    g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = '#111820';
+    for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (qr.isDark(r, k)) g.fillRect(off + k * cell, off + r * cell, cell, cell);
+    msg.textContent = 'جاهز. امسح الرمز بهاتفك للتأكد قبل الطباعة.'; $('dl').disabled = false;
+  }
+  $('go').addEventListener('click', draw);
+  $('dl').addEventListener('click', () => { const a = document.createElement('a'); a.href = $('c').toDataURL('image/png'); a.download = 'uae55-qr.png'; a.click(); });
+</script>
+</body>
+</html>
