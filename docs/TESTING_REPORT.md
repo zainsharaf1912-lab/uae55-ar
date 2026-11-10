@@ -1,5 +1,26 @@
 # Compatibility and testing report
 
+## Build 3 — fix: 3D world invisible in AR on iPhone (Needle Go)
+
+**Reported on a real iPhone (10 Nov 2026):** camera, Arabic interface, narration and scene buttons worked, but no 3D
+objects were visible in scenes 1 and 2.
+
+**Root cause (reproduced):** when AR started, the stylesheet hid the page's 3D canvas
+(`body.xr-active #scene-canvas { visibility: hidden }`). That is correct for Android Chrome, whose native compositor
+draws the AR frame itself. Needle Go instead draws the AR frame **into the page canvas** (its WebXR layer reports
+`framebuffer = null`), so hiding the canvas hid the whole world. Placement and rendering were working (411 draw
+calls per frame) but invisible. The earlier simulation forced the canvas visible for its screenshots, which masked the bug.
+
+**Fix (AR plumbing only, no 3D asset or design change):** at session start the app checks the WebXR base layer. If it
+draws into the page canvas (`framebuffer === null`), the canvas stays visible (`body.xr-canvas`); native-compositor
+runtimes keep the previous behaviour. The 3D-mode orbit controls are also disabled during AR.
+
+**Verification so far:** simulated canvas-drawing runtime with no CSS override → world visible; full AR suite
+28/28 pass; native-compositor simulation → canvas hidden as before; 3D mode regression clean.
+**Final verification must be on the iPhone.** Diagnostics are available with `?debug=1` (status panel and two
+unlit cubes: magenta 35 cm ahead of the camera, cyan at the placement point). They don't appear without the flag.
+
+
 ## Build 2 — AR adaptation (iPhone via Needle Go App Clip)
 
 **Not yet tested on a real phone.** No iPhone or Android device was available to this build. Everything below

@@ -58,11 +58,11 @@ let css = read('css/app.css').toString().replace(/url\("\.\.\/(assets\/fonts\/[^
 
 // ---------- HTML ----------
 let html = read('index.html').toString();
-html = html.replace('<link rel="stylesheet" href="css/app.css">', `<style>\n${css}\n</style>`);
+html = html.replace(/<link rel="stylesheet" href="css\/app\.css(\?v=\d+)?">/, () => `<style>\n${css}\n</style>`);
 html = html.replace(/src="(assets\/brand\/[^"]+)"/g, (m, p) => `src="${assets[p]}"`);
 html = html.replace(/<img([^>]*?) data-asset="([^"]+)"/g, (m, a, p) => `<img${a} src="${assets[p]}"`);
 const boot = `<script>window.__INLINE_ASSETS__ = ${JSON.stringify(assets)};\nwindow.__INLINE_JSON__ = ${JSON.stringify(json)};\nwindow.__PREVIEW__ = ${ARTIFACT};</script>`;
-html = html.replace('<script type="module" src="js/main.js"></script>', `${boot}\n<script type="module">\n${js}\n</script>`);
+html = html.replace(/<script type="module" src="js\/main\.js(\?v=\d+)?"><\/script>/, () => `${boot}\n<script type="module">\n${js}\n</script>`);
 
 if (ARTIFACT) {
   const title = html.match(/<title>[\s\S]*?<\/title>/)[0];

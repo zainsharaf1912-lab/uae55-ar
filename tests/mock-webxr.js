@@ -26,7 +26,7 @@
   };
 
   window.XRWebGLLayer = class {
-    constructor(session, gl) { this.framebuffer = null; this.framebufferWidth = gl.drawingBufferWidth; this.framebufferHeight = gl.drawingBufferHeight; this.antialias = true; this.ignoreDepthValues = false; }
+    constructor(session, gl) { this.framebuffer = cfg.nativeFramebuffer ? gl.createFramebuffer() : null; this.framebufferWidth = gl.drawingBufferWidth; this.framebufferHeight = gl.drawingBufferHeight; this.antialias = true; this.ignoreDepthValues = false; }
     getViewport() { return { x: 0, y: 0, width: this.framebufferWidth, height: this.framebufferHeight }; }
     static getNativeFramebufferScaleFactor() { return 1; }
   };

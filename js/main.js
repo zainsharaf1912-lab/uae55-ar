@@ -14,6 +14,7 @@ import { createTVProgram } from './tv/tvProgram.js';
 import { AudioEngine } from './audio/audioEngine.js';
 import { Narrator } from './audio/narration.js';
 import { ARController, isARSupported } from './xr/arSession.js';
+import { ARDebug, AR_DEBUG } from './xr/arDebug.js';
 import { Director } from './scenes/director.js';
 import { UI } from './ui/ui.js';
 
@@ -131,6 +132,7 @@ class App {
     renderer.setAnimationLoop((time, frame) => this.loop(frame));
     window.addEventListener('resize', () => this.resize());
     this.bindPointer(canvas);
+    if (AR_DEBUG) this.debug = new ARDebug(this); // temporary diagnostics: ?debug=1
     progress(1);
   }
 
@@ -174,11 +176,18 @@ class App {
     try {
       this.ui.show('hud'); this.ui.setMode(true); this.isAR = true;
       this.director.setHotspots([]);
+      this.controls.enabled = false; // 3D-mode orbit controls must not react to touches during AR
       await this.ar.start(); // requests the camera
+      // Where does this runtime draw the AR frame?
+      //  • native compositor (Android Chrome): an opaque XR framebuffer; the page canvas must be hidden
+      //  • page canvas (Needle Go on iPhone): framebuffer === null; the canvas IS the AR layer and must stay visible
+      const bl = this.renderer.xr.getBaseLayer();
+      const drawsToCanvas = !!bl && ('framebuffer' in bl) && bl.framebuffer === null;
+      document.body.classList.toggle('xr-canvas', drawsToCanvas);
       this.applyARFocus(SCENES[Math.max(0, this.director.index)], true);
     } catch (e) {
       console.warn(e);
-      this.isAR = false; this.ui.setMode(false);
+      this.isAR = false; this.ui.setMode(false); this.controls.enabled = true; document.body.classList.remove('xr-canvas');
       const denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
       this.ui.toast(denied ? 'لم يُمنح إذن الكاميرا. يمكنك منح الإذن من إعدادات المتصفح، أو المتابعة في الوضع ثلاثي الأبعاد.' : 'تعذّر بدء الواقع المعزز على هذا الجهاز. انتقلنا إلى الوضع ثلاثي الأبعاد.', 6000);
       this.start3D();
@@ -187,6 +196,7 @@ class App {
 
   exitAR() {
     this.isAR = false; this.ui.setMode(false);
+    document.body.classList.remove('xr-canvas'); this.controls.enabled = true;
     this.director.setAreeshLifted(false);
     this.focusXf.position.set(0, 0, 0); this.focusXf.scale.setScalar(1);
     if (this.exiting) { this.exiting = false; this.ui.show('splash'); }
@@ -300,6 +310,7 @@ class App {
     this.director.update(dt, t);
     this.confetti.update(t, dt);
     if (this.isAR) this.ar.update(frame);
+    if (this.debug) this.debug.frame();
     else if (this.controls.enabled) this.controls.update();
 
     this.updateLights();

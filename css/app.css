@@ -70,7 +70,10 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--yellow); 
 }
 body.xr-active #app::before, body.xr-active #grain { display: none; }
 body.xr-active { background: transparent; }
-body.xr-active #scene-canvas { visibility: hidden; } /* the XR compositor draws camera + scene; the DOM overlay must stay transparent */
+/* Native-compositor runtimes (Android Chrome) draw camera + scene themselves: hide the stale page canvas.
+   Canvas-based runtimes (Needle Go on iPhone, body.xr-canvas) draw the AR scene INTO the page canvas: keep it visible. */
+body.xr-active:not(.xr-canvas) #scene-canvas { visibility: hidden; }
+body.xr-canvas #scene-canvas { visibility: visible; background: transparent; }
 body.xr-active #app { background: transparent; }
 body.ar-scanning .hud-bottom, body.ar-scanning .hud-title { visibility: hidden; }
 

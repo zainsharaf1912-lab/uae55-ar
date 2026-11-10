@@ -79,7 +79,10 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--yellow); 
 }
 body.xr-active #app::before, body.xr-active #grain { display: none; }
 body.xr-active { background: transparent; }
-body.xr-active #scene-canvas { visibility: hidden; } /* the XR compositor draws camera + scene; the DOM overlay must stay transparent */
+/* Native-compositor runtimes (Android Chrome) draw camera + scene themselves: hide the stale page canvas.
+   Canvas-based runtimes (Needle Go on iPhone, body.xr-canvas) draw the AR scene INTO the page canvas: keep it visible. */
+body.xr-active:not(.xr-canvas) #scene-canvas { visibility: hidden; }
+body.xr-canvas #scene-canvas { visibility: visible; background: transparent; }
 body.xr-active #app { background: transparent; }
 body.ar-scanning .hud-bottom, body.ar-scanning .hud-title { visibility: hidden; }
 
@@ -2598,6 +2601,7 @@ class ARController {
     if (!frame || !this.hitSource || this.placed) { this.reticle.visible = false; return; }
     const ref = this.renderer.xr.getReferenceSpace();
     const hits = frame.getHitTestResults(this.hitSource);
+    this.lastHits = hits.length;
     if (hits.length) {
       const pose = hits[0].getPose(ref);
       if (pose) {
@@ -2712,6 +2716,86 @@ class ARController {
 }
 
 return { isARSupported, ARController };
+})();
+
+// ===== js/xr/arDebug.js =====
+__mod["js/xr/arDebug.js"] = (() => {
+// TEMPORARY AR diagnostics — only active when the page URL contains ?debug=1.
+// Shows session / surface / placement / world / render status and two unlit diagnostic cubes:
+//   magenta cube: always 35 cm in front of the AR camera  → proves the 3D layer is drawn at all
+//   cyan cube:    at the placement point (anchor origin)   → proves placement + transforms
+// Nothing here touches the experience's own models. Remove the ?debug flag to hide everything.
+
+const AR_DEBUG = typeof location !== 'undefined' && new URLSearchParams(location.search).has('debug');
+
+class ARDebug {
+  constructor(app) {
+    this.app = app; this.errors = []; this.frames = 0; this.fps = 0; this._fc = 0; this._t0 = performance.now();
+    const panel = this.panel = document.createElement('pre');
+    panel.id = 'ar-debug';
+    panel.setAttribute('dir', 'ltr');
+    panel.style.cssText = 'position:fixed;left:6px;right:6px;top:calc(env(safe-area-inset-top,0px) + 270px);z-index:50;margin:0;padding:6px 8px;' +
+      'background:rgba(0,0,0,.72);color:#9f9;font:10.5px/1.35 ui-monospace,Menlo,monospace;white-space:pre-wrap;pointer-events:none;border:1px solid #f0f';
+    document.getElementById('app').appendChild(panel);
+    const push = m => { this.errors.push(String(m).slice(0, 160)); if (this.errors.length > 5) this.errors.shift(); };
+    window.addEventListener('error', e => push('error: ' + (e.message || e)));
+    window.addEventListener('unhandledrejection', e => push('promise: ' + (e.reason && e.reason.message || e.reason)));
+    const ce = console.error.bind(console); console.error = (...a) => { push('console: ' + a.join(' ')); ce(...a); };
+
+    const cube = (size, color) => { const m = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), new THREE.MeshBasicMaterial({ color })); m.frustumCulled = false; return m; };
+    this.camCube = cube(0.06, 0xff00ff); this.camCube.name = 'debug-camera-cube'; this.camCube.visible = false; app.scene.add(this.camCube);
+    this.anchorCube = cube(0.05, 0x00ffff); this.anchorCube.name = 'debug-anchor-cube'; this.anchorCube.position.y = 0.025; app.anchor.add(this.anchorCube);
+    this._p = new THREE.Vector3(); this._d = new THREE.Vector3(); this._s = new THREE.Vector3();
+    setInterval(() => this.render(), 500);
+    this.render();
+  }
+
+  /** Called every frame from the render loop. */
+  frame() {
+    const a = this.app; this.frames++; this._fc++;
+    const now = performance.now(); if (now - this._t0 > 1000) { this.fps = Math.round(this._fc * 1000 / (now - this._t0)); this._fc = 0; this._t0 = now; }
+    const presenting = a.renderer.xr.isPresenting;
+    this.camCube.visible = presenting;
+    if (presenting) {
+      const cam = a.renderer.xr.getCamera();
+      cam.getWorldPosition(this._p); cam.getWorldDirection(this._d);
+      this.camCube.position.copy(this._p).addScaledVector(this._d, 0.35);
+      this.camCube.rotation.y += 0.03; this.camCube.rotation.x += 0.02;
+    }
+  }
+
+  render() {
+    const a = this.app, r = a.renderer, ar = a.ar, s = ar && ar.session;
+    const f = n => (Math.round(n * 1000) / 1000).toFixed(3);
+    const v = o => `${f(o.x)}, ${f(o.y)}, ${f(o.z)}`;
+    const canvas = document.getElementById('scene-canvas'); const cs = getComputedStyle(canvas);
+    const bl = r.xr.getBaseLayer && r.xr.getBaseLayer();
+    let meshes = 0, total = 0;
+    if (a.world) a.world.traverse(o => { if (o.isMesh) { total++; let p = o, vis = true; while (p) { if (!p.visible) { vis = false; break; } p = p.parent; } if (vis) meshes++; } });
+    const ws = a.world ? a.world.getWorldScale(this._s).x : 0;
+    const anchorP = a.anchor ? a.anchor.getWorldPosition(this._p.clone()) : null;
+    let camP = '—'; if (r.xr.isPresenting) { const c = r.xr.getCamera(); camP = v(c.getWorldPosition(new THREE.Vector3())); }
+    const gl = r.getContext(); const glErr = gl.getError();
+    const lines = [
+      'AR DEBUG (temporary — remove ?debug=1 from the URL to hide)',
+      `navigator.xr: ${'xr' in navigator ? 'yes' : 'NO'}   secure: ${window.isSecureContext}   mode: ${a.isAR ? 'AR' : '3D'}`,
+      `session: ${s ? 'ACTIVE' : 'none'}   presenting: ${r.xr.isPresenting}   blend: ${s ? s.environmentBlendMode : '—'}   overlay: ${s && s.domOverlayState ? s.domOverlayState.type : '—'}`,
+      `base layer: ${bl ? (bl.constructor && bl.constructor.name) : '—'}   framebuffer: ${bl ? (bl.framebuffer === null ? 'null (draws into page canvas)' : (bl.framebuffer === undefined ? 'n/a' : 'native')) : '—'}`,
+      `canvas: visibility=${cs.visibility} display=${cs.display} ${canvas.width}x${canvas.height}   body: ${document.body.className || '—'}`,
+      `surface: hits=${ar ? ar.lastHits : '—'}   reticle=${ar && ar.reticle.visible}   placed=${ar ? ar.placed : '—'}   touchTaps=${ar ? !!ar.touchWorks : '—'}`,
+      `anchor pos (m): ${anchorP ? v(anchorP) : '—'}   anchor visible: ${a.anchor ? a.anchor.visible : '—'}`,
+      `world scale: ${ws.toFixed(5)} m/unit  → board ${(ws * 28).toFixed(2)} m   user scale: ${a.userXf ? a.userXf.scale.x.toFixed(2) : '—'}`,
+      `xr camera pos (m): ${camP}   near/far: ${a.camera ? a.camera.near + '/' + a.camera.far : '—'}`,
+      `meshes visible: ${meshes}/${total}   draw calls: ${r.info.render.calls}   triangles: ${r.info.render.triangles}`,
+      `frames: ${this.frames}   fps: ${this.fps}   scene: ${a.director ? a.director.index + 1 : '—'}/7   gl error: ${glErr}`,
+      `errors: ${this.errors.length ? '\n  ' + this.errors.join('\n  ') : 'none'}`,
+      `ua: ${navigator.userAgent.slice(0, 110)}`
+    ];
+    this.panel.textContent = lines.join('\n');
+  }
+}
+
+return { AR_DEBUG, ARDebug };
 })();
 
 // ===== js/scenes/director.js =====
@@ -3154,6 +3238,7 @@ const { createTVProgram } = __mod["js/tv/tvProgram.js"];
 const { AudioEngine } = __mod["js/audio/audioEngine.js"];
 const { Narrator } = __mod["js/audio/narration.js"];
 const { ARController, isARSupported } = __mod["js/xr/arSession.js"];
+const { ARDebug, AR_DEBUG } = __mod["js/xr/arDebug.js"];
 const { Director } = __mod["js/scenes/director.js"];
 const { UI } = __mod["js/ui/ui.js"];
 const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
@@ -3270,6 +3355,7 @@ class App {
     renderer.setAnimationLoop((time, frame) => this.loop(frame));
     window.addEventListener('resize', () => this.resize());
     this.bindPointer(canvas);
+    if (AR_DEBUG) this.debug = new ARDebug(this); // temporary diagnostics: ?debug=1
     progress(1);
   }
 
@@ -3313,11 +3399,18 @@ class App {
     try {
       this.ui.show('hud'); this.ui.setMode(true); this.isAR = true;
       this.director.setHotspots([]);
+      this.controls.enabled = false; // 3D-mode orbit controls must not react to touches during AR
       await this.ar.start(); // requests the camera
+      // Where does this runtime draw the AR frame?
+      //  • native compositor (Android Chrome): an opaque XR framebuffer; the page canvas must be hidden
+      //  • page canvas (Needle Go on iPhone): framebuffer === null; the canvas IS the AR layer and must stay visible
+      const bl = this.renderer.xr.getBaseLayer();
+      const drawsToCanvas = !!bl && ('framebuffer' in bl) && bl.framebuffer === null;
+      document.body.classList.toggle('xr-canvas', drawsToCanvas);
       this.applyARFocus(SCENES[Math.max(0, this.director.index)], true);
     } catch (e) {
       console.warn(e);
-      this.isAR = false; this.ui.setMode(false);
+      this.isAR = false; this.ui.setMode(false); this.controls.enabled = true; document.body.classList.remove('xr-canvas');
       const denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
       this.ui.toast(denied ? 'لم يُمنح إذن الكاميرا. يمكنك منح الإذن من إعدادات المتصفح، أو المتابعة في الوضع ثلاثي الأبعاد.' : 'تعذّر بدء الواقع المعزز على هذا الجهاز. انتقلنا إلى الوضع ثلاثي الأبعاد.', 6000);
       this.start3D();
@@ -3326,6 +3419,7 @@ class App {
 
   exitAR() {
     this.isAR = false; this.ui.setMode(false);
+    document.body.classList.remove('xr-canvas'); this.controls.enabled = true;
     this.director.setAreeshLifted(false);
     this.focusXf.position.set(0, 0, 0); this.focusXf.scale.setScalar(1);
     if (this.exiting) { this.exiting = false; this.ui.show('splash'); }
@@ -3439,6 +3533,7 @@ class App {
     this.director.update(dt, t);
     this.confetti.update(t, dt);
     if (this.isAR) this.ar.update(frame);
+    if (this.debug) this.debug.frame();
     else if (this.controls.enabled) this.controls.update();
 
     this.updateLights();

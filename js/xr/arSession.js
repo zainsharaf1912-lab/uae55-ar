@@ -81,6 +81,7 @@ export class ARController {
     if (!frame || !this.hitSource || this.placed) { this.reticle.visible = false; return; }
     const ref = this.renderer.xr.getReferenceSpace();
     const hits = frame.getHitTestResults(this.hitSource);
+    this.lastHits = hits.length;
     if (hits.length) {
       const pose = hits[0].getPose(ref);
       if (pose) {

@@ -24,8 +24,7 @@ const mock = fs.readFileSync(path.join(__dirname, 'mock-webxr.js'), 'utf8');
   await p.waitForFunction(() => window.__uae55 && window.__uae55.ready, null, { timeout: 120000 });
   check('AR start button visible when WebXR immersive-ar is available', await ev(`!document.getElementById('btn-start-ar').hidden`));
   // make the simulated "camera feed" visible for screenshots (a real device composites the camera here)
-  await p.addStyleTag({ content: `body.xr-active{background:linear-gradient(#d9cbb4 0 34%,#9b6b4a 34% 100%) !important}
-    body.xr-active #scene-canvas{visibility:visible !important}
+  await p.addStyleTag({ content: `html{background:linear-gradient(#d9cbb4 0 34%,#9b6b4a 34% 100%)}
     #simlabel{position:fixed;left:8px;bottom:4px;z-index:99;font:600 10px monospace;background:#000a;color:#fff;padding:2px 6px}` });
   await ev(`(() => { const d = document.createElement('div'); d.id = 'simlabel'; d.textContent = 'SIMULATED AR DEVICE (headless test) — not a real camera'; document.body.appendChild(d); })()`);
   await ev(`(() => { const d = window.__uae55.director; const o = d.handleTap.bind(d); window.__taps = []; d.handleTap = k => { window.__taps.push(k); return o(k); }; })()`);
@@ -46,6 +45,7 @@ const mock = fs.readFileSync(path.join(__dirname, 'mock-webxr.js'), 'utf8');
   const fps = await ev(`new Promise(r => { let n = 0; const s = window.__MOCKXR_SESSION; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 < 2000) s.requestAnimationFrame(f); else r(n / 2); }; s.requestAnimationFrame(f); })`);
   log.push('  simulator frame rate: ' + fps + ' fps (software GPU)');
   check('XR session started and renderer is presenting', await ev(`window.__uae55.renderer.xr.isPresenting === true`));
+  check('canvas stays visible on a canvas-drawing runtime (iPhone/Needle Go case)', await ev(`getComputedStyle(document.getElementById('scene-canvas')).visibility === 'visible' && document.body.classList.contains('xr-canvas')`));
   check('dom-overlay state ' + (overlay ? 'active' : 'absent (select-only path)'), await ev(`!!window.__uae55.ar.overlay === ${overlay}`));
   check('scan guide shown, reticle visible on the table', await ev(`!document.getElementById('ar-guide').hidden && window.__uae55.ar.reticle.visible`));
   await shot('ar-01-scanning.png');

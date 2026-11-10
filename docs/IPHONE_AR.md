@@ -70,3 +70,10 @@ The splash screen builds that link automatically on iPhone ("ابدأ بالوا
 * **No anchors** in Needle Go yet: if tracking is lost (phone covered or pointed at the ceiling), the world can drift. Use **«إعادة الوضع»** to place it again.
 * **The 3D preview inside claude.ai cannot use the camera.** AR always needs the HTTPS deployment.
 * Needle Go is a third-party service: if it is unavailable, the site still runs fully in 3D mode on iPhone.
+
+## Diagnostics (temporary)
+
+Add `?debug=1` to the address (e.g. `https://zainsharaf1912-lab.github.io/uae55-ar/?debug=1`) and start AR the normal
+way. A green status panel shows the session, surface detection, placement, world position and scale, visible meshes,
+draw calls, frame rate and any errors. A **magenta cube** floats 35 cm ahead at the upper left of the view (if you can't
+see it, nothing 3D is being drawn), and a **cyan cube** marks the placement point. Without `?debug=1`, none of this appears.
